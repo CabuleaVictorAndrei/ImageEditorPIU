@@ -39,8 +39,8 @@ class UX(QMainWindow):
 
         self.centralWidget = QWidget()
 
-        self.undoButton = QPushButton("Undo", self.centralWidget)
-        self.redoButton = QPushButton("Redo", self.centralWidget)
+        self.undoButton = QPushButton("Undo\t(Ctrl+Z)", self.centralWidget)
+        self.redoButton = QPushButton("Redo\t(Ctrl+Y)", self.centralWidget)
 
         self.averageFilterButton = QPushButton("Average Filter", self.centralWidget)
         self.medianFilterButton = QPushButton("Median Filter", self.centralWidget)
@@ -238,11 +238,11 @@ class UX(QMainWindow):
     def fileMenu(self):
         fileMenu = self.menubar.addMenu('File')
 
-        openAction = QAction('Open\tCtrl+O', self)
+        openAction = QAction('Open\t(Ctrl+O)', self)
         openAction.triggered.connect(self.openFile)
         fileMenu.addAction(openAction)
 
-        saveAction = QAction('Save\tCtrl+S', self)
+        saveAction = QAction('Save\t(Ctrl+S)', self)
         saveAction.triggered.connect(self.saveFile)
         fileMenu.addAction(saveAction)
 
@@ -331,6 +331,12 @@ class UX(QMainWindow):
             self.openFile()
         if event.key() == Qt.Key_S and event.modifiers() == Qt.ControlModifier:
             self.saveFile()
+        if event.key() == Qt.Key_Z and event.modifiers() == Qt.ControlModifier:
+            if len(self.undoRedoManager.get_previous_images()) > 0:
+                self.undo()
+        if event.key() == Qt.Key_Y and event.modifiers() == Qt.ControlModifier:
+            if len(self.undoRedoManager.get_next_images()) > 0:
+                self.redo()
 
     # Functions for connections
     def openFile(self):
@@ -359,6 +365,10 @@ class UX(QMainWindow):
             self.updatePixmap(cvMatToQImage(image))
 
     def saveFile(self):
+        if len(self.undoRedoManager.get_previous_images()) != 0:
+            self.undoRedoManager.reset_next_images()
+            self.undoRedoManager.reset_previous_images()
+
         options = QFileDialog.Options()
         options |= QFileDialog.ReadOnly
         fileDialog = QFileDialog.getSaveFileName(self, "Save Image", "", "Images (*.png);;All Files (*)",
@@ -372,7 +382,7 @@ class UX(QMainWindow):
             qImage.save(filePath, "PNG", -1)
 
     def exitFile(self):
-        if len(self.imageOperations.getPreviousImages()) != 0:
+        if len(self.undoRedoManager.get_previous_images()) != 0:
             messageBox = QMessageBox()
             messageBox.setIcon(QMessageBox.Question)
             messageBox.setWindowTitle("Save and Exit")
@@ -396,7 +406,8 @@ class UX(QMainWindow):
 
     def onAverageFilterButtonPressed(self):
         try:
-            self.undoRedoManager.get_previous_images().append(self.canvas.pixmap().toImage())
+            self.undoRedoManager.add_previous_images(self.canvas.pixmap().toImage())
+
             image = applyAverageFilter(self.canvas.pixmap().toImage(), int(self.filterComboBox.currentText()))
             self.updatePixmap(image)
 
@@ -411,7 +422,8 @@ class UX(QMainWindow):
 
     def onMedianFilterButtonPressed(self):
         try:
-            self.undoRedoManager.get_previous_images().append(self.canvas.pixmap().toImage())
+            self.undoRedoManager.add_previous_images(self.canvas.pixmap().toImage())
+
             image = applyMedianFilter(self.canvas.pixmap().toImage(), int(self.filterComboBox.currentText()))
             self.updatePixmap(image)
 
@@ -426,7 +438,8 @@ class UX(QMainWindow):
 
     def onGaussianFilterButtonPressed(self):
         try:
-            self.undoRedoManager.get_previous_images().append(self.canvas.pixmap().toImage())
+            self.undoRedoManager.add_previous_images(self.canvas.pixmap().toImage())
+
             image = applyGaussianFilter(self.canvas.pixmap().toImage(), int(self.filterComboBox.currentText()))
             self.updatePixmap(image)
 
@@ -441,7 +454,8 @@ class UX(QMainWindow):
 
     def imageToGrayScale(self):
         try:
-            self.undoRedoManager.get_previous_images().append(self.canvas.pixmap().toImage())
+            self.undoRedoManager.add_previous_images(self.canvas.pixmap().toImage())
+
             image = imageToGrayScale(self.canvas.pixmap().toImage())
             self.updatePixmap(image)
 
@@ -456,7 +470,8 @@ class UX(QMainWindow):
 
     def brightnessSliderValueChanged(self):
         try:
-            self.undoRedoManager.get_previous_images().append(self.canvas.pixmap().toImage())
+            self.undoRedoManager.add_previous_images(self.canvas.pixmap().toImage())
+
             self.brightnessLabel.setText(f'Brightness Value: {self.brightnessSlider.value()}')
 
             if self.noBrightnessModificationImage is None:
@@ -474,6 +489,8 @@ class UX(QMainWindow):
             QMessageBox.warning(self, "Error", f"An error occurred: {str(e)}")
 
     def onSpray(self):
+        self.undoRedoManager.add_previous_images(self.canvas.pixmap().toImage())
+
         self.canvas.penState = PenState.SPRAY
 
         if not self.undoButton.isEnabled():
@@ -482,6 +499,8 @@ class UX(QMainWindow):
         self.noBrightnessModificationImage = None
 
     def onBrush(self):
+        self.undoRedoManager.add_previous_images(self.canvas.pixmap().toImage())
+
         self.canvas.penState = PenState.BRUSH
 
         if not self.undoButton.isEnabled():
@@ -490,6 +509,8 @@ class UX(QMainWindow):
         self.noBrightnessModificationImage = None
 
     def onPen(self):
+        self.undoRedoManager.add_previous_images(self.canvas.pixmap().toImage())
+
         self.canvas.penState = PenState.NORMAL
 
         if not self.undoButton.isEnabled():
@@ -498,6 +519,8 @@ class UX(QMainWindow):
         self.noBrightnessModificationImage = None
 
     def onFill(self):
+        self.undoRedoManager.add_previous_images(self.canvas.pixmap().toImage())
+
         self.canvas.penState = PenState.FILL
 
         if not self.undoButton.isEnabled():
@@ -514,6 +537,8 @@ class UX(QMainWindow):
         self.noBrightnessModificationImage = None
 
     def onRectangle(self):
+        self.undoRedoManager.add_previous_images(self.canvas.pixmap().toImage())
+
         self.canvas.penState = PenState.RECTANGLE
 
         if not self.undoButton.isEnabled():
@@ -522,6 +547,8 @@ class UX(QMainWindow):
         self.noBrightnessModificationImage = None
 
     def onCircle(self):
+        self.undoRedoManager.add_previous_images(self.canvas.pixmap().toImage())
+
         self.canvas.penState = PenState.CIRCLE
 
         if not self.undoButton.isEnabled():
@@ -548,7 +575,8 @@ class UX(QMainWindow):
         if len(self.undoRedoManager.get_previous_images()) == 1:
             self.undoButton.setEnabled(False)
 
-        self.undoRedoManager.get_next_images().append(self.canvas.pixmap().toImage())
+        self.undoRedoManager.add_next_images(self.canvas.pixmap().toImage())
+
         image = self.undoRedoManager.undo()
         self.canvas.setPixmap(QPixmap.fromImage(image))
 
@@ -556,7 +584,8 @@ class UX(QMainWindow):
         if len(self.undoRedoManager.get_next_images()) == 1:
             self.redoButton.setEnabled(False)
 
-        self.undoRedoManager.get_previous_images().append(self.canvas.pixmap().toImage())
+        self.undoRedoManager.add_previous_images(self.canvas.pixmap().toImage())
+
         image = self.undoRedoManager.redo()
         self.canvas.setPixmap(QPixmap.fromImage(image))
 

@@ -11,7 +11,7 @@ def cvMatToQImage(cvMat):
     return qImage
 
 
-def qimageToCVMat(qimage):
+def qImageToCVMat(qimage):
     width = qimage.width()
     height = qimage.height()
 
@@ -30,7 +30,7 @@ def applyAverageFilter(image, value):
             print("Failed to load the image.")
             return
 
-        cvMat = qimageToCVMat(image)
+        cvMat = qImageToCVMat(image)
         result = cv2.blur(cvMat, (value, value))
         return cvMatToQImage(result)
 
@@ -44,7 +44,7 @@ def applyMedianFilter(image, value):
             print("Failed to load the image.")
             return
 
-        cvMat = qimageToCVMat(image)
+        cvMat = qImageToCVMat(image)
         result = cv2.medianBlur(cvMat, value)
         return cvMatToQImage(result)
 
@@ -58,7 +58,7 @@ def applyGaussianFilter(image, value):
             print("Failed to load the image.")
             return
 
-        cvMat = qimageToCVMat(image)
+        cvMat = qImageToCVMat(image)
         result = cv2.GaussianBlur(cvMat, (value, value), 0)
         return cvMatToQImage(result)
 
@@ -72,7 +72,7 @@ def imageToGrayScale(image):
             print("Failed to load the image.")
             return
 
-        cvMat = qimageToCVMat(image)
+        cvMat = qImageToCVMat(image)
         grayImage = cv2.cvtColor(cvMat, cv2.COLOR_BGR2GRAY)
         result = cv2.merge((grayImage, grayImage, grayImage))
         return cvMatToQImage(result)
@@ -87,7 +87,7 @@ def changeBrightness(image, value):
             print("Failed to load the image.")
             return
 
-        cvMat = qimageToCVMat(image)
+        cvMat = qImageToCVMat(image)
         result = cv2.convertScaleAbs(cvMat, alpha=1, beta=value)
         return cvMatToQImage(result)
 
